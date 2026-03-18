@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChurnSense — Churn Prediction System</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --bg-card: #111827;
+    --bg-elevated: #1a2235;
+    --border: rgba(255,255,255,0.07);
+    --border-active: rgba(99,179,237,0.4);
+    --accent: #63b3ed;
+    --accent-glow: rgba(99,179,237,0.15);
+    --danger: #fc8181;
+    --danger-bg: rgba(252,129,129,0.08);
+    --success: #68d391;
+    --success-bg: rgba(104,211,145,0.08);
+    --warn-bg: rgba(246,173,85,0.08);
+    --warn: #f6ad55;
+    --text: #e2e8f0;
+    --text-muted: #718096;
+    --text-dim: #4a5568;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(99,179,237,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,179,237,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px; left: 50%; transform: translateX(-50%);
+    width: 800px; height: 400px;
+    background: radial-gradient(ellipse, rgba(99,179,237,0.07) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 48px; height: 60px;
+    background: rgba(11,15,26,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-left { display: flex; align-items: center; gap: 10px; }
+  .nav-logo-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; color: var(--bg);
+    font-family: var(--mono);
+  }
+  .nav-logo-text { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+  .nav-links { display: flex; list-style: none; }
+  .nav-links a {
+    text-decoration: none; font-size: 0.82rem; font-weight: 500;
+    color: var(--text-muted); padding: 8px 16px; border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-badge {
+    font-family: var(--mono); font-size: 0.7rem; color: var(--accent);
+    background: var(--accent-glow); border: 1px solid rgba(99,179,237,0.2);
+    padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px;
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* HERO */
+  .hero { padding: 130px 48px 80px; max-width: 1100px; margin: 0 auto; }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 0.72rem; color: var(--accent);
+    letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 24px;
+    opacity: 0; animation: fadeUp 0.6s 0.1s forwards;
+  }
+  .eyebrow-line { width: 24px; height: 1px; background: var(--accent); }
+  .hero h1 {
+    font-size: clamp(2.2rem, 4.5vw, 4rem); font-weight: 700;
+    line-height: 1.1; letter-spacing: -1.5px; color: #f7fafc;
+    margin-bottom: 20px; opacity: 0; animation: fadeUp 0.6s 0.2s forwards;
+  }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero-desc {
+    max-width: 520px; font-size: 1rem; color: var(--text-muted);
+    margin-bottom: 36px; opacity: 0; animation: fadeUp 0.6s 0.3s forwards;
+  }
+  .hero-actions {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    opacity: 0; animation: fadeUp 0.6s 0.4s forwards;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 24px; border-radius: var(--radius);
+    font-size: 0.88rem; font-weight: 600; font-family: 'Sora', sans-serif;
+    cursor: pointer; border: none; text-decoration: none; transition: all 0.2s ease;
+  }
+  .btn-primary {
+    background: var(--accent); color: var(--bg);
+    box-shadow: 0 0 24px rgba(99,179,237,0.25);
+  }
+  .btn-primary:hover { background: #90cdf4; box-shadow: 0 0 32px rgba(99,179,237,0.35); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.15); color: var(--text); background: rgba(255,255,255,0.03); }
+
+  /* METRICS */
+  .metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1px; background: var(--border);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    overflow: hidden; margin: 60px 0 0;
+    opacity: 0; animation: fadeUp 0.6s 0.5s forwards;
+  }
+  .metric-cell {
+    background: var(--bg-card); padding: 24px 28px; transition: background 0.2s;
+  }
+  .metric-cell:hover { background: var(--bg-elevated); }
+  .metric-label {
+    font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim);
+    letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .metric-value { font-family: var(--mono); font-size: 1.6rem; font-weight: 500; color: var(--accent); line-height: 1; }
+  .metric-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* SECTIONS */
+  .section { max-width: 1100px; margin: 0 auto; padding: 80px 48px; }
+  .section-header { margin-bottom: 40px; }
+  .section-tag {
+    font-family: var(--mono); font-size: 0.68rem; color: var(--accent);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  }
+  .section-tag::before { content: ''; width: 16px; height: 1px; background: var(--accent); }
+  .section-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; color: #f7fafc; }
+  .section-desc { font-size: 0.9rem; color: var(--text-muted); margin-top: 8px; max-width: 480px; }
+  .divider { max-width: 1100px; margin: 0 auto; padding: 0 48px; height: 1px; background: var(--border); }
+
+  /* MODEL CARDS */
+  .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .model-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 28px;
+    transition: all 0.25s ease; position: relative; overflow: hidden;
+  }
+  .model-card.best {
+    border-color: rgba(99,179,237,0.25);
+    background: linear-gradient(135deg, var(--bg-card), rgba(99,179,237,0.04));
+  }
+  .model-card.best::before {
+    content: 'SELECTED';
+    position: absolute; top: 16px; right: 16px;
+    font-family: var(--mono); font-size: 0.6rem; color: var(--accent);
+    background: var(--accent-glow); border: 1px solid rgba(99,179,237,0.2);
+    padding: 3px 8px; border-radius: 20px; letter-spacing: 1px;
+  }
+  .model-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+  .model-name { font-size: 0.95rem; font-weight: 600; color: #f7fafc; margin-bottom: 20px; }
+  .model-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem;
+  }
+  .model-stat-row:last-child { border-bottom: none; }
+  .stat-key { color: var(--text-muted); font-family: var(--mono); font-size: 0.72rem; }
+  .stat-val { color: var(--text); font-weight: 600; font-family: var(--mono); }
+  .stat-val.highlight { color: var(--accent); }
+
+  /* PREDICT */
+  .predict-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; align-items: start; }
+  .form-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+  }
+  .form-card-header {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .form-card-title { font-size: 0.9rem; font-weight: 600; color: #f7fafc; }
+  .form-card-sub { font-size: 0.75rem; color: var(--text-muted); font-family: var(--mono); }
+  .form-card-body { padding: 24px 28px; }
+
+  .field-group-label {
+    font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim);
+    letter-spacing: 1.5px; text-transform: uppercase; margin: 20px 0 12px;
+  }
+  .field-group-label:first-child { margin-top: 0; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 2px; }
+  .field label { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); }
+  .field input, .field select {
+    padding: 9px 13px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--bg);
+    color: var(--text); font-size: 0.82rem; font-family: 'Sora', sans-serif;
+    outline: none; transition: all 0.2s; appearance: none;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--border-active); background: var(--bg-elevated);
+    box-shadow: 0 0 0 3px rgba(99,179,237,0.08);
+  }
+  .field input::placeholder { color: var(--text-dim); }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23718096' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 32px; cursor: pointer;
+  }
+  .field select option { background: #1a2235; }
+
+  .predict-btn {
+    width: 100%; margin-top: 24px; padding: 13px;
+    background: var(--accent); color: var(--bg);
+    border: none; border-radius: var(--radius);
+    font-size: 0.88rem; font-weight: 700; font-family: 'Sora', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 0 20px rgba(99,179,237,0.2);
+  }
+  .predict-btn:hover { background: #90cdf4; box-shadow: 0 0 28px rgba(99,179,237,0.3); }
+  .predict-btn:active { transform: scale(0.99); }
+  .predict-btn.loading { opacity: 0.7; pointer-events: none; }
+  .spin {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(11,15,26,0.3); border-top-color: var(--bg);
+    border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+  }
+  .predict-btn.loading .spin { display: block; }
+  .predict-btn.loading .btn-label { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RESULT */
+  #result {
+    margin-top: 16px; border-radius: var(--radius);
+    padding: 20px; display: none; animation: fadeUp 0.3s forwards;
+  }
+  #result.show { display: block; }
+  #result.churn { background: var(--danger-bg); border: 1px solid rgba(252,129,129,0.2); }
+  #result.safe  { background: var(--success-bg); border: 1px solid rgba(104,211,145,0.2); }
+  #result.error { background: var(--warn-bg); border: 1px solid rgba(246,173,85,0.2); }
+  .result-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .result-icon { font-size: 1.3rem; }
+  .result-heading { font-size: 0.92rem; font-weight: 700; color: #f7fafc; }
+  .result-body { font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; }
+  .prob-row { margin-top: 14px; display: flex; align-items: center; gap: 10px; }
+  .prob-track { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .prob-fill { height: 100%; border-radius: 4px; background: var(--accent); width: 0%; transition: width 1s cubic-bezier(0.34,1.2,0.64,1); }
+  #result.churn .prob-fill { background: var(--danger); }
+  #result.safe  .prob-fill { background: var(--success); }
+  .prob-pct { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; color: var(--text-muted); min-width: 40px; text-align: right; }
+
+  /* SIDE */
+  .side-panel { display: flex; flex-direction: column; gap: 16px; }
+  .info-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 24px;
+  }
+  .info-card-title {
+    font-size: 0.82rem; font-weight: 600; color: #f7fafc;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .info-card-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .step-list { display: flex; flex-direction: column; gap: 12px; }
+  .step { display: flex; gap: 12px; align-items: flex-start; }
+  .step-num {
+    font-family: var(--mono); font-size: 0.7rem; color: var(--accent);
+    background: var(--accent-glow); border: 1px solid rgba(99,179,237,0.15);
+    width: 24px; height: 24px; min-width: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .step-text { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+  .step-text strong { color: var(--text); font-weight: 600; }
+  .api-note {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); line-height: 1.6;
+  }
+  .api-note .endpoint { color: var(--accent); }
+  .api-note .method { color: #f6ad55; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 48px; max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.78rem; color: var(--text-dim);
+  }
+  footer span { color: var(--text-muted); }
+  .footer-tag { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim); }
+
+  /* REVEAL */
+  .reveal { opacity: 0; transform: translateY(24px); transition: all 0.55s cubic-bezier(0.22,1,0.36,1); }
+  .reveal.in { opacity: 1; transform: none; }
+  .d1 { transition-delay: 0.05s; } .d2 { transition-delay: 0.12s; }
+  .d3 { transition-delay: 0.19s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+    .hero, .section { padding-left: 20px; padding-right: 20px; }
+    .divider { padding: 0 20px; }
+    footer { padding: 24px 20px; flex-direction: column; gap: 8px; text-align: center; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .model-grid, .predict-grid { grid-template-columns: 1fr; }
+    .field-row { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<nav>
+  <div class="nav-left">
+    <div class="nav-logo-icon">CS</div>
+    <span class="nav-logo-text">ChurnSense</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#models">Models</a></li>
+    <li><a href="#predict">Predict</a></li>
+  </ul>
+  <div class="nav-badge">v1.0 · XGBoost</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow"><span class="eyebrow-line"></span>Telco Customer Churn · ML System</div>
+  <h1>Predict churn.<br><em>Retain customers.</em></h1>
+  <p class="hero-desc">An end-to-end machine learning system trained on 7,043 telecom customers. Enter a customer profile and get an instant churn probability from the live XGBoost model.</p>
+  <div class="hero-actions">
+    <a href="#predict" class="btn btn-primary">Run Prediction →</a>
+    <a href="#models" class="btn btn-ghost">View Model Benchmarks</a>
+  </div>
+  <div class="metrics">
+    <div class="metric-cell">
+      <div class="metric-label">Best Accuracy</div>
+      <div class="metric-value">76.9%</div>
+      <div class="metric-sub">Random Forest</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-label">Best Recall</div>
+      <div class="metric-value">77.3%</div>
+      <div class="metric-sub">Logistic Regression</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-label">Deployed Model</div>
+      <div class="metric-value" style="font-size:1.1rem;padding-top:4px;">XGBoost</div>
+      <div class="metric-sub">F1-balanced choice</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-label">Training Samples</div>
+      <div class="metric-value">7,043</div>
+      <div class="metric-sub">SMOTE balanced</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODELS -->
+<section class="section" id="models">
+  <div class="section-header reveal">
+    <div class="section-tag">Model Benchmarks</div>
+    <div class="section-title">Three models evaluated.</div>
+    <div class="section-desc">Trained on SMOTE-balanced data with OneHotEncoding. XGBoost selected for deployment based on F1 balance.</div>
+  </div>
+  <div class="model-grid">
+    <div class="model-card reveal d1">
+      <div class="model-name">Logistic Regression</div>
+      <div class="model-stat-row"><span class="stat-key">ACCURACY</span><span class="stat-val">74.0%</span></div>
+      <div class="model-stat-row"><span class="stat-key">PRECISION</span><span class="stat-val">49.8%</span></div>
+      <div class="model-stat-row"><span class="stat-key">RECALL</span><span class="stat-val">77.3%</span></div>
+      <div class="model-stat-row"><span class="stat-key">F1 SCORE</span><span class="stat-val">60.6%</span></div>
+    </div>
+    <div class="model-card reveal d2">
+      <div class="model-name">Random Forest</div>
+      <div class="model-stat-row"><span class="stat-key">ACCURACY</span><span class="stat-val">76.9%</span></div>
+      <div class="model-stat-row"><span class="stat-key">PRECISION</span><span class="stat-val">54.2%</span></div>
+      <div class="model-stat-row"><span class="stat-key">RECALL</span><span class="stat-val">69.2%</span></div>
+      <div class="model-stat-row"><span class="stat-key">F1 SCORE</span><span class="stat-val">60.8%</span></div>
+    </div>
+    <div class="model-card best reveal d3">
+      <div class="model-name">XGBoost</div>
+      <div class="model-stat-row"><span class="stat-key">ACCURACY</span><span class="stat-val highlight">75.5%</span></div>
+      <div class="model-stat-row"><span class="stat-key">PRECISION</span><span class="stat-val highlight">51.8%</span></div>
+      <div class="model-stat-row"><span class="stat-key">RECALL</span><span class="stat-val highlight">74.2%</span></div>
+      <div class="model-stat-row"><span class="stat-key">F1 SCORE</span><span class="stat-val highlight">61.0%</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PREDICT -->
+<section class="section" id="predict">
+  <div class="section-header reveal">
+    <div class="section-tag">Live Inference</div>
+    <div class="section-title">Customer churn prediction.</div>
+    <div class="section-desc">Submit a customer profile to the Flask API and receive a real-time churn probability.</div>
+  </div>
+
+  <div class="predict-grid">
+    <div class="form-card reveal">
+      <div class="form-card-header">
+        <div class="form-card-title">Customer Profile Input</div>
+        <div class="form-card-sub">POST → /predict</div>
+      </div>
+      <div class="form-card-body">
+
+        <div class="field-group-label">Demographics</div>
+        <div class="field-row">
+          <div class="field"><label>Gender</label>
+            <select id="gender"><option value="Male">Male</option><option value="Female">Female</option></select>
+          </div>
+          <div class="field"><label>Senior Citizen</label>
+            <select id="SeniorCitizen"><option value="0">No</option><option value="1">Yes</option></select>
+          </div>
+          <div class="field"><label>Partner</label>
+            <select id="Partner"><option value="1">Yes</option><option value="0">No</option></select>
+          </div>
+          <div class="field"><label>Dependents</label>
+            <select id="Dependents"><option value="0">No</option><option value="1">Yes</option></select>
+          </div>
+        </div>
+
+        <div class="field-group-label">Services</div>
+        <div class="field-row">
+          <div class="field"><label>Tenure (months)</label>
+            <input type="number" id="tenure" value="12" min="0" max="72">
+          </div>
+          <div class="field"><label>Internet Service</label>
+            <select id="InternetService">
+              <option value="Fiber optic">Fiber Optic</option>
+              <option value="DSL">DSL</option>
+              <option value="No">No Internet</option>
+            </select>
+          </div>
+          <div class="field"><label>Phone Service</label>
+            <select id="PhoneService"><option value="1">Yes</option><option value="0">No</option></select>
+          </div>
+          <div class="field"><label>Multiple Lines</label>
+            <select id="MultipleLines"><option value="0">No</option><option value="1">Yes</option></select>
+          </div>
+          <div class="field"><label>Online Security</label>
+            <select id="OnlineSecurity">
+              <option value="No">No</option><option value="Yes">Yes</option>
+              <option value="No internet service">N/A</option>
+            </select>
+          </div>
+          <div class="field"><label>Online Backup</label>
+            <select id="OnlineBackup">
+              <option value="Yes">Yes</option><option value="No">No</option>
+              <option value="No internet service">N/A</option>
+            </select>
+          </div>
+          <div class="field"><label>Device Protection</label>
+            <select id="DeviceProtection">
+              <option value="No">No</option><option value="Yes">Yes</option>
+              <option value="No internet service">N/A</option>
+            </select>
+          </div>
+          <div class="field"><label>Tech Support</label>
+            <select id="TechSupport">
+              <option value="No">No</option><option value="Yes">Yes</option>
+              <option value="No internet service">N/A</option>
+            </select>
+          </div>
+          <div class="field"><label>Streaming TV</label>
+            <select id="StreamingTV">
+              <option value="Yes">Yes</option><option value="No">No</option>
+              <option value="No internet service">N/A</option>
+            </select>
+          </div>
+          <div class="field"><label>Streaming Movies</label>
+            <select id="StreamingMovies">
+              <option value="No">No</option><option value="Yes">Yes</option>
+              <option value="No internet service">N/A</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group-label">Contract & Billing</div>
+        <div class="field-row">
+          <div class="field"><label>Contract</label>
+            <select id="Contract">
+              <option value="Month-to-month">Month-to-month</option>
+              <option value="One year">One Year</option>
+              <option value="Two year">Two Year</option>
+            </select>
+          </div>
+          <div class="field"><label>Paperless Billing</label>
+            <select id="PaperlessBilling"><option value="Yes">Yes</option><option value="No">No</option></select>
+          </div>
+          <div class="field"><label>Payment Method</label>
+            <select id="PaymentMethod">
+              <option value="Electronic check">Electronic Check</option>
+              <option value="Mailed check">Mailed Check</option>
+              <option value="Bank transfer (automatic)">Bank Transfer</option>
+              <option value="Credit card (automatic)">Credit Card</option>
+            </select>
+          </div>
+          <div class="field"><label>Monthly Charges ($)</label>
+            <input type="number" id="MonthlyCharges" value="70.00" step="0.01">
+          </div>
+          <div class="field"><label>Total Charges ($)</label>
+            <input type="number" id="TotalCharges" value="800.00" step="0.01">
+          </div>
+        </div>
+
+        <button class="predict-btn" onclick="runPredict()">
+          <span class="btn-label">Run Prediction</span>
+          <div class="spin"></div>
+        </button>
+
+        <div id="result">
+          <div class="result-row">
+            <div class="result-icon" id="rIcon"></div>
+            <div class="result-heading" id="rTitle"></div>
+          </div>
+          <div class="result-body" id="rBody"></div>
+          <div class="prob-row" id="rProbRow">
+            <div class="prob-track"><div class="prob-fill" id="rBar"></div></div>
+            <div class="prob-pct" id="rPct"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="side-panel reveal d2">
+      <div class="info-card">
+        <div class="info-card-title"><div class="dot"></div>How It Works</div>
+        <div class="step-list">
+          <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Fill in the form</strong> with customer demographics, services, and billing info.</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Form POSTs JSON</strong> to your local Flask API at port 5000.</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Transformer applies</strong> OneHotEncoding and numeric scaling via the saved pipeline.</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text"><strong>XGBoost returns</strong> a binary prediction and churn probability score.</div></div>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title"><div class="dot"></div>API Reference</div>
+        <div class="api-note">
+          <span class="method">POST</span> <span class="endpoint">http://127.0.0.1:5000/predict</span><br><br>
+          Content-Type: application/json<br><br>
+          Response:<br>
+          &nbsp;prediction: 0 | 1<br>
+          &nbsp;churn_probability: float<br>
+          &nbsp;status: "success"
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title"><div class="dot"></div>Prerequisites</div>
+        <div class="api-note">
+          # Install dependencies<br>
+          pip install -r requirements.txt<br><br>
+          # Start the API server<br>
+          python app.py<br><br>
+          # Required in project root:<br>
+          model.pkl · transformer.pkl
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>ChurnSense</span>
+  <div class="footer-tag">XGBoost · Flask · scikit-learn · Telco Dataset</div>
+</footer>
+
+</div>
+<script>
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); observer.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  window.addEventListener('scroll', () => {
+    document.querySelector('nav').style.borderBottomColor =
+      window.scrollY > 20 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.07)';
+  });
+
+  async function runPredict() {
+    const btn = document.querySelector('.predict-btn');
+    const res = document.getElementById('result');
+    btn.classList.add('loading');
+    res.className = '';
+
+    const payload = {
+      gender: document.getElementById('gender').value,
+      SeniorCitizen: +document.getElementById('SeniorCitizen').value,
+      Partner: +document.getElementById('Partner').value,
+      Dependents: +document.getElementById('Dependents').value,
+      tenure: +document.getElementById('tenure').value,
+      PhoneService: +document.getElementById('PhoneService').value,
+      MultipleLines: +document.getElementById('MultipleLines').value,
+      InternetService: document.getElementById('InternetService').value,
+      OnlineSecurity: document.getElementById('OnlineSecurity').value,
+      OnlineBackup: document.getElementById('OnlineBackup').value,
+      DeviceProtection: document.getElementById('DeviceProtection').value,
+      TechSupport: document.getElementById('TechSupport').value,
+      StreamingTV: document.getElementById('StreamingTV').value,
+      StreamingMovies: document.getElementById('StreamingMovies').value,
+      Contract: document.getElementById('Contract').value,
+      PaperlessBilling: document.getElementById('PaperlessBilling').value,
+      PaymentMethod: document.getElementById('PaymentMethod').value,
+      MonthlyCharges: +document.getElementById('MonthlyCharges').value,
+      TotalCharges: +document.getElementById('TotalCharges').value
+    };
+
+    try {
+      const r = await fetch('http://127.0.0.1:5000/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+
+      const prob = data.churn_probability;
+      const isChurn = data.prediction === 1;
+      const pct = (prob * 100).toFixed(1);
+
+      document.getElementById('rIcon').textContent = isChurn ? '⚠' : '✓';
+      document.getElementById('rTitle').textContent = isChurn ? 'Churn Risk Detected' : 'Low Churn Risk';
+      document.getElementById('rBody').textContent = isChurn
+        ? `Model confidence: ${pct}% probability of churn. Recommend proactive retention.`
+        : `Model confidence: ${pct}% churn probability. Customer appears stable.`;
+      document.getElementById('rProbRow').style.display = 'flex';
+      document.getElementById('rPct').textContent = pct + '%';
+
+      res.className = 'show ' + (isChurn ? 'churn' : 'safe');
+      setTimeout(() => { document.getElementById('rBar').style.width = pct + '%'; }, 80);
+
+    } catch (e) {
+      document.getElementById('rIcon').textContent = '!';
+      document.getElementById('rTitle').textContent = 'Connection Failed';
+      document.getElementById('rBody').textContent = `Could not reach http://127.0.0.1:5000. Run: python app.py — ${e.message}`;
+      document.getElementById('rProbRow').style.display = 'none';
+      res.className = 'show error';
+    } finally {
+      btn.classList.remove('loading');
+    }
+  }
+</script>
+</body>
+</html>
